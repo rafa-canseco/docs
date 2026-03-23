@@ -1,0 +1,82 @@
+---
+title: "Market Making Overview"
+description: "Provide liquidity on b1nary. Earn the spread."
+---
+
+Market making is the opposite of directional trading. You are not betting ETH goes up or down. You provide liquidity by offering prices, and you earn the spread between your price and the theoretical value of the option.
+
+On b1nary, users sell options (cash-secured puts and covered calls). As a market maker, you **buy** those options. The user locks collateral and earns premium. You pay that premium and receive oTokens (ERC-20 option tokens).
+
+## How you make money
+
+1. **Spread capture.** Price each option using Black-Scholes and bid slightly below theoretical value. The difference is your edge.
+2. **Premium decay (theta).** Options lose value as they approach expiry. If you hedge directional risk, the option decays while your hedge roughly breaks even.
+3. **Volume.** Each trade has a small edge. Profit compounds over many trades.
+
+## How you lose money
+
+1. **Adverse selection.** Stale prices get filled by informed traders. Short deadlines and fast requoting help.
+2. **Hedging slippage.** Your hedge fills at a worse price than expected.
+3. **ITM settlement.** OTokens have intrinsic value at expiry, reducing your net P&L.
+4. **Gap risk.** ETH moves faster than you can re-hedge.
+
+## The P&L equation
+
+```
+Net P&L = -Premium Paid + Settlement Value + Hedge P&L
+```
+
+| Term | Meaning |
+|------|---------|
+| Premium Paid | What you pay the user (gross, before protocol fee) |
+| Settlement Value | $0 if OTM, intrinsic value if ITM |
+| Hedge P&L | Profit or loss from your external hedge |
+
+## The agent loop
+
+Your market making agent runs this cycle every ~60 seconds:
+
+<Steps>
+  <Step title="Cancel previous quotes">
+    `DELETE /mm/quotes` to clear stale quotes.
+  </Step>
+  <Step title="Fetch market data">
+    `GET /mm/market` returns spot price, IV, available oTokens.
+  </Step>
+  <Step title="Read your on-chain nonce">
+    `BatchSettler.makerNonce(yourAddress)`. Every quote must include this.
+  </Step>
+  <Step title="Price each option">
+    Use Black-Scholes with spot and IV. Bid below theoretical value.
+  </Step>
+  <Step title="Sign with EIP-712">
+    Build the Quote struct and sign with your private key.
+  </Step>
+  <Step title="Submit quotes">
+    `POST /mm/quotes` with signed quotes. API validates signatures and nonces.
+  </Step>
+</Steps>
+
+In parallel, listen for fills on `WS /mm/stream` and hedge immediately on each fill.
+
+## Onboarding
+
+b1nary is permissioned for market makers. To start:
+
+1. Send your wallet address to the b1nary team
+2. We whitelist your address on the BatchSettler contract
+3. We create an API key mapped to your wallet
+4. You approve USDC and start quoting
+
+No KYC, no lengthy process.
+
+## Requirements
+
+```bash
+pip install eth-account web3 requests websockets scipy
+```
+
+Optional for Hyperliquid hedging:
+```bash
+pip install hyperliquid-python-sdk
+```

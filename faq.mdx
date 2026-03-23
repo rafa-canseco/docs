@@ -1,0 +1,50 @@
+---
+title: "FAQ"
+description: "Common questions about b1nary."
+---
+
+<AccordionGroup>
+  <Accordion title="What's a strike price?">
+    The price you commit to buy or sell at. Further from the current price means safer but lower premium.
+  </Accordion>
+
+  <Accordion title="What's premium?">
+    Money paid to you upfront by the market maker. Compensation for locking your capital. Yours regardless of outcome.
+  </Accordion>
+
+  <Accordion title="What's Range?">
+    You set a lower and upper price. If the asset stays in range, all your capital comes back and you keep premium from both sides. If it moves out, you either buy (downside) or sell (upside) at the price you chose.
+  </Accordion>
+
+  <Accordion title="Can I lose money?">
+    You always keep the premium. If you get assigned, you buy or sell at the price you chose. Your effective cost is always better than market because of the premium you earned. You cannot lose more than your collateral. No margin, no liquidations.
+  </Accordion>
+
+  <Accordion title="Who pays the premium?">
+    A professional market maker. They need someone on the other side of their trade. The premium is their cost, your income.
+  </Accordion>
+
+  <Accordion title="When do options expire?">
+    Weekly at 08:00 UTC. Settlement is automatic.
+  </Accordion>
+
+  <Accordion title="What happens at expiry?">
+    If OTM (price stayed on your side), your collateral is returned. If ITM (price crossed your strike), physical delivery occurs. Either way, you keep the premium.
+  </Accordion>
+
+  <Accordion title="Is there a minimum amount?">
+    No enforced minimum. You can start with any amount of USDC or ETH/cbBTC. The practical minimum depends on gas costs.
+  </Accordion>
+
+  <Accordion title="Do I need to sign up?">
+    No. Connect your wallet and start earning. No KYC, no account creation.
+  </Accordion>
+
+  <Accordion title="What chain is this on?">
+    Base (Coinbase's L2). Gas fees are fractions of a cent.
+  </Accordion>
+
+  <Accordion title="What assets are supported?">
+    ETH and cbBTC. More coming.
+  </Accordion>
+</AccordionGroup>

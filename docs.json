@@ -1,68 +1,61 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "theme": "quill",
+  "appearance": "dark",
+  "name": "b1nary",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#00E676",
+    "light": "#69F0AE",
+    "dark": "#00C853"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Learn",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "how-it-works",
+              "options-101"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Strategies",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "strategies",
+              "faq"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Developers",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Build on b1nary",
             "pages": [
-              "api-reference/introduction"
+              "developers/getting-started",
+              "developers/api-reference",
+              "developers/smart-contracts",
+              "developers/integration-guide"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "Market Making",
+        "groups": [
           {
-            "group": "Endpoint examples",
+            "group": "Market Making",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "market-making/overview",
+              "market-making/pricing",
+              "market-making/hedging",
+              "market-making/integration",
+              "market-making/risk-controls"
             ]
           }
         ]
@@ -71,14 +64,14 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "App",
+          "href": "https://b1nary.app",
+          "icon": "arrow-up-right-from-square"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Testnet",
+          "href": "https://staging.b1nary.app",
+          "icon": "flask-vial"
         }
       ]
     }
@@ -90,33 +83,26 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "App",
+        "href": "https://b1nary.app"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
+    ]
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/b1naryapp"
     }
   }
 }

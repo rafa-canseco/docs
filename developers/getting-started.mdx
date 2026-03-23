@@ -1,0 +1,62 @@
+---
+title: "Getting Started"
+description: "Environments, setup, and your first trade."
+---
+
+## Environments
+
+b1nary runs on two environments. Use testnet for development and testing, production for real trading.
+
+### Production (Base mainnet)
+
+| | |
+|---|---|
+| **Chain** | Base (chain ID `8453`) |
+| **API** | `https://api.b1nary.app` |
+| **App** | `https://b1nary.app` |
+| **Block explorer** | `https://basescan.org` |
+| **RPC** | `https://mainnet.base.org` |
+| **Assets** | ETH, cbBTC. Puts collateralized with USDC, calls with WETH or cbBTC. |
+
+### Testnet (Base Sepolia)
+
+| | |
+|---|---|
+| **Chain** | Base Sepolia (chain ID `84532`) |
+| **API** | `https://optionsprotocolbackend-staging.up.railway.app` |
+| **App** | `https://staging.b1nary.app` |
+| **Block explorer** | `https://sepolia.basescan.org` |
+| **RPC** | `https://sepolia.base.org` |
+| **Assets** | ETH, BTC (mock tokens). No real money. |
+
+## Setup for agents
+
+<Steps>
+  <Step title="Get test tokens (testnet only)">
+    Call `POST /faucet` with `{"address": "0xYourWallet"}`. You receive 0.005 ETH (gas), 50 LETH (test WETH), and 100,000 LUSD (test USDC). One claim per wallet.
+
+    ```bash
+    curl -X POST https://optionsprotocolbackend-staging.up.railway.app/faucet \
+      -H "Content-Type: application/json" \
+      -d '{"address": "0xYourWalletAddress"}'
+    ```
+  </Step>
+  <Step title="Approve collateral to MarginPool">
+    Call `approve(MarginPool, max)` on the collateral token. For puts: approve USDC. For calls: approve WETH (or cbBTC). One transaction per token.
+  </Step>
+  <Step title="Read prices and execute">
+    `GET /prices` returns the live option price sheet with signed quotes. Pick an option, calculate collateral, and call `executeOrder` on BatchSettler. See the [Integration Guide](/developers/integration-guide) for a complete example.
+  </Step>
+</Steps>
+
+## Decimal reference
+
+| Type | Decimals | Example |
+|------|----------|---------|
+| oToken amounts | 8 | `100000000` = 1 ETH notional |
+| Strike prices (on-chain) | 8 | `240000000000` = $2,400 |
+| USDC | 6 | `5000000` = 5 USDC |
+| WETH | 18 | `1000000000000000000` = 1 WETH |
+| cbBTC | 8 | `100000000` = 1 cbBTC |
+
+All contracts are UUPS-proxied and verified on BaseScan.

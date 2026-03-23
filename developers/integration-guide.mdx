@@ -1,0 +1,131 @@
+---
+title: "Integration Guide"
+description: "Complete Python example: from faucet to execution."
+---
+
+## Full example
+
+This is a complete working example of selling a cash-secured put on b1nary using Python.
+
+```python
+import requests
+from web3 import Web3
+
+# -- Pick your environment --
+# Production (Base mainnet, real money):
+# API = "https://api.b1nary.app"
+# RPC = "https://mainnet.base.org"
+# BATCH_SETTLER = "0xd281ADdB8b5574360Fd6BFC245B811ad5C582a3B"
+# MARGIN_POOL = "0xa1e04873F6d112d84824C88c9D6937bE38811657"
+# USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+# Testnet (Base Sepolia, no real money):
+API = "https://optionsprotocolbackend-staging.up.railway.app"
+RPC = "https://sepolia.base.org"
+BATCH_SETTLER = "0x766bD3aF1D102f7EbcB65a7B7bC12478C2DbA918"
+MARGIN_POOL = "0x727ddBD04A691E73feaE26349F48144953Ef20d6"
+USDC = "0xAB51a471493832C1D70cef8ff937A850cf37c860"  # LUSD on testnet
+
+w3 = Web3(Web3.HTTPProvider(RPC))
+
+# 1. Get test tokens (testnet only, one-time)
+requests.post(f"{API}/faucet", json={"address": MY_ADDRESS})
+
+# 2. Approve USDC to MarginPool (one-time)
+usdc = w3.eth.contract(address=USDC, abi=ERC20_ABI)
+usdc.functions.approve(
+    MARGIN_POOL, 2**256 - 1
+).transact({"from": MY_ADDRESS})
+
+# 3. Read prices
+prices = requests.get(f"{API}/prices?asset=eth").json()
+
+# 4. Pick a PUT with an otoken_address
+put = next(
+    p for p in prices
+    if p["option_type"] == "put" and p["otoken_address"]
+)
+
+# 5. Calculate collateral for $2,400 commitment
+usd_amount = 2400
+eth_units = usd_amount / put["strike"]
+otoken_amount = int(eth_units * 1e8)
+strike_8dec = int(put["strike"] * 1e8)
+collateral = (otoken_amount * strike_8dec) // 10**10
+
+# 6. Build quote struct from API response
+quote = (
+    put["otoken_address"],      # oToken
+    int(put["bid_price_raw"]),   # bidPrice
+    int(put["deadline"]),        # deadline
+    int(put["quote_id"]),        # quoteId
+    int(put["max_amount_raw"]),  # maxAmount
+    int(put["maker_nonce"]),     # makerNonce
+)
+
+# 7. Execute order
+settler = w3.eth.contract(
+    address=BATCH_SETTLER, abi=SETTLER_ABI
+)
+tx = settler.functions.executeOrder(
+    quote,
+    bytes.fromhex(put["signature"][2:]),
+    otoken_amount,
+    collateral,
+).transact({"from": MY_ADDRESS})
+
+# 8. Check position
+positions = requests.get(
+    f"{API}/positions/{MY_ADDRESS}"
+).json()
+```
+
+## Step-by-step breakdown
+
+### 1. Get test tokens
+
+Testnet only, one-time. The faucet sends 0.005 ETH (gas), 50 LETH, and 100,000 LUSD.
+
+### 2. Approve collateral
+
+One-time per token. For puts, approve USDC (or LUSD on testnet) to the MarginPool. For calls, approve WETH or cbBTC.
+
+### 3. Read prices
+
+`GET /prices` returns all available options with signed quotes. Each entry has the strike, expiry, premium, delta, and the complete EIP-712 data needed for on-chain execution.
+
+Filter by `option_type` (PUT or CALL) and ensure `otoken_address` and `signature` are present.
+
+### 4. Calculate collateral
+
+For puts: `(amount * strike_8dec) / 1e10` gives USDC amount in 6 decimals.
+
+For ETH calls: `amount * 1e10` gives WETH amount in 18 decimals.
+
+For BTC calls: `amount` directly (cbBTC has 8 decimals, same as oToken).
+
+### 5. Execute on-chain
+
+Call `executeOrder(quote, signature, amount, collateral)` on BatchSettler. Premium arrives in your wallet in the same transaction.
+
+### 6. Monitor
+
+`GET /positions/{address}` shows all open and settled positions with the `outcome` field.
+
+## The Wheel (automated loop)
+
+The optimal automated strategy is a continuous cycle:
+
+1. Start with USDC. Sell a cash-secured put at a strike you'd buy at.
+2. If OTM: collateral returned. Collect premium, sell another put.
+3. If ITM: you receive the asset. Sell a covered call.
+4. If call OTM: keep asset and premium. Sell another call.
+5. If call ITM: asset sold at strike. Back to USDC. Repeat from step 1.
+
+Use `GET /positions/{address}` to check settlement outcomes and decide the next move.
+
+## Dependencies
+
+```bash
+pip install web3 requests
+```

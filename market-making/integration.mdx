@@ -1,0 +1,208 @@
+---
+title: "Integration"
+description: "Step-by-step: from reading market data to submitting signed quotes."
+---
+
+## 1. Read market data
+
+```python
+import requests
+
+API = "https://optionsprotocolbackend-staging.up.railway.app"
+# Production: API = "https://api.b1nary.app"
+API_KEY = "your-api-key"
+HEADERS = {"X-API-Key": API_KEY}
+
+market = requests.get(f"{API}/mm/market", headers=HEADERS).json()
+spot = market["eth_spot"]
+iv = market["eth_iv"]
+fee_bps = market["protocol_fee_bps"]
+otokens = market["available_otokens"]
+```
+
+## 2. Read your on-chain nonce
+
+Every quote must include the nonce. It must match the on-chain value.
+
+```python
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider("https://sepolia.base.org"))
+SETTLER_ABI = [{"inputs": [{"name": "", "type": "address"}], "name": "makerNonce", "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}]
+settler = w3.eth.contract(
+    address="0x766bD3aF1D102f7EbcB65a7B7bC12478C2DbA918",
+    abi=SETTLER_ABI
+)
+
+nonce = settler.functions.makerNonce(YOUR_ADDRESS).call()
+```
+
+## 3. Price each option and build quotes
+
+```python
+import time
+
+r = 0.05  # risk-free rate
+spread_bps = 300  # your spread: 3%
+
+quotes = []
+for i, ot in enumerate(otokens):
+    T = max((ot["expiry"] - time.time()) / (365 * 86400), 0)
+    if T <= 0:
+        continue
+
+    price = bid_price(
+        ot["is_put"], spot, ot["strike_price"], T, r, iv, spread_bps
+    )
+    bid_raw = int(price * 1e6)  # USDC has 6 decimals
+    if bid_raw < 1:
+        continue
+
+    quotes.append({
+        "otoken_address": ot["address"],
+        "bid_price": bid_raw,
+        "deadline": int(time.time()) + 300,  # valid for 5 minutes
+        "quote_id": i,
+        "max_amount": 1_00_000_000,  # 1 ETH notional (8 decimals)
+        "maker_nonce": nonce,
+        "strike_price": ot["strike_price"],
+        "expiry": ot["expiry"],
+        "is_put": ot["is_put"],
+    })
+```
+
+## 4. Sign each quote with EIP-712
+
+```python
+from eth_account import Account
+from eth_account.messages import encode_typed_data
+
+PRIVATE_KEY = "0x..."
+
+DOMAIN = {
+    "name": "b1nary",
+    "version": "1",
+    "chainId": 84532,  # testnet; use 8453 for production
+    "verifyingContract": "0x766bD3aF1D102f7EbcB65a7B7bC12478C2DbA918",
+}
+
+QUOTE_TYPES = {
+    "Quote": [
+        {"name": "oToken", "type": "address"},
+        {"name": "bidPrice", "type": "uint256"},
+        {"name": "deadline", "type": "uint256"},
+        {"name": "quoteId", "type": "uint256"},
+        {"name": "maxAmount", "type": "uint256"},
+        {"name": "makerNonce", "type": "uint256"},
+    ],
+}
+
+for q in quotes:
+    signable = encode_typed_data(
+        domain_data=DOMAIN,
+        message_types=QUOTE_TYPES,
+        message_data={
+            "oToken": q["otoken_address"],
+            "bidPrice": q["bid_price"],
+            "deadline": q["deadline"],
+            "quoteId": q["quote_id"],
+            "maxAmount": q["max_amount"],
+            "makerNonce": q["maker_nonce"],
+        },
+    )
+    signed = Account.sign_message(signable, private_key=PRIVATE_KEY)
+    q["signature"] = "0x" + signed.signature.hex()
+```
+
+## 5. Submit quotes
+
+```python
+resp = requests.post(
+    f"{API}/mm/quotes",
+    headers=HEADERS,
+    json={"quotes": quotes},
+)
+print(resp.json())
+# {"accepted": 3, "rejected": 0, "errors": []}
+```
+
+## 6. Listen for fills
+
+```python
+import json
+import asyncio
+import websockets
+
+async def listen_fills():
+    url = f"wss://optionsprotocolbackend-staging.up.railway.app/mm/stream?api_key={API_KEY}"
+    async for ws in websockets.connect(url):
+        try:
+            async for msg in ws:
+                data = json.loads(msg)
+                if data["type"] == "fill":
+                    fill = data["data"]
+                    print(f"Fill: {fill['otoken_address']} "
+                          f"amount={fill['amount']} "
+                          f"premium={fill['gross_premium']}")
+                    # HEDGE HERE
+        except websockets.ConnectionClosed:
+            continue  # auto-reconnect
+
+asyncio.run(listen_fills())
+```
+
+Polling fallback: `GET /mm/fills?since=<timestamp>` if WebSocket is not an option.
+
+## 7. The main loop
+
+```python
+while True:
+    requests.delete(f"{API}/mm/quotes", headers=HEADERS)
+
+    market = requests.get(
+        f"{API}/mm/market", headers=HEADERS
+    ).json()
+
+    nonce = settler.functions.makerNonce(YOUR_ADDRESS).call()
+
+    quotes = build_and_sign_quotes(market, nonce)
+    requests.post(
+        f"{API}/mm/quotes",
+        headers=HEADERS,
+        json={"quotes": quotes},
+    )
+
+    rebalance_hedges(market["eth_spot"], market["eth_iv"])
+
+    time.sleep(60)
+```
+
+Run the fill listener in a separate thread/task so hedges happen immediately.
+
+## EIP-712 Quote struct
+
+### Domain separator
+
+```
+name: "b1nary"
+version: "1"
+chainId: 84532 (testnet) or 8453 (production)
+verifyingContract: BatchSettler address
+```
+
+### Quote fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `oToken` | `address` | oToken contract address |
+| `bidPrice` | `uint256` | Premium per oToken, USDC raw (6 decimals). `1000000` = 1 USDC |
+| `deadline` | `uint256` | Unix timestamp. Quote invalid after this |
+| `quoteId` | `uint256` | Unique per quote. Same ID = upsert (replaces previous) |
+| `maxAmount` | `uint256` | Max oTokens fillable. 8 decimals: `100000000` = 1 ETH notional |
+| `makerNonce` | `uint256` | Must match on-chain `BatchSettler.makerNonce(yourAddress)` |
+
+### Typehash
+
+```
+keccak256("Quote(address oToken,uint256 bidPrice,uint256 deadline,uint256 quoteId,uint256 maxAmount,uint256 makerNonce)")
+```

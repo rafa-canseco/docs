@@ -1,0 +1,48 @@
+---
+title: "Strategies"
+description: "The Wheel, income generation, and buying the dip with yield."
+---
+
+## The Wheel
+
+A continuous cycle that earns premium in any market direction.
+
+<Steps>
+  <Step title="Start with USDC">
+    Sell a cash-secured put at a strike you'd buy at.
+  </Step>
+  <Step title="If OTM (price stayed above strike)">
+    Collateral returned. Keep premium. Sell another put.
+  </Step>
+  <Step title="If ITM (price dropped below strike)">
+    You receive the asset via physical delivery. Now sell a covered call above your cost basis.
+  </Step>
+  <Step title="If call OTM (price stayed below strike)">
+    Keep asset and premium. Sell another call.
+  </Step>
+  <Step title="If call ITM (price rose above strike)">
+    Asset sold at strike. Back to USDC. Return to step 1.
+  </Step>
+</Steps>
+
+You earn premium on every cycle. The Wheel works best when you pick strikes you're genuinely comfortable with.
+
+### Recovering from a drawdown
+
+If you get assigned on a put and the asset drops further, your loss is unrealized. You hold the asset, not a loss. Instead of selling at a loss, sell covered calls above your cost basis (`strike - premium`). Each call earns more premium, lowering your cost basis further. Repeat until the price recovers above your cost basis. This turns a drawdown into a recovery engine.
+
+## Income generation
+
+Hold ETH or BTC and want yield without selling? Sell covered calls at strikes well above the current price. Most expire OTM. You keep your asset and collect premium every week.
+
+**Risk:** occasionally you sell your asset if it rallies sharply. But you still profit (premium + appreciation to strike).
+
+## Buying the dip with yield
+
+Want to accumulate an asset? Sell puts at the price you'd buy at. You either get paid to wait (OTM) or buy at your target price minus premium (ITM). Either outcome is good.
+
+## Range Earn
+
+Set a lower and upper bound. If the asset stays in range, all your capital comes back and you keep premium from both sides. This is the highest premium strategy when you expect low volatility.
+
+**Risk:** if the price moves outside your range, you either buy (downside) or sell (upside) at the bound it crossed.

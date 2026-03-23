@@ -1,0 +1,113 @@
+---
+title: "Smart Contracts"
+description: "Contract addresses and key functions."
+---
+
+## Production (Base mainnet)
+
+| Contract | Address |
+|----------|---------|
+| BatchSettler | `0xd281ADdB8b5574360Fd6BFC245B811ad5C582a3B` |
+| Controller | `0x2Ab6D1c41f0863Bc2324b392f1D8cF073cF42624` |
+| MarginPool | `0xa1e04873F6d112d84824C88c9D6937bE38811657` |
+| OTokenFactory | `0x0701b7De84eC23a3CaDa763bCA7A9E324486F6D7` |
+| Oracle | `0x09daa0194A3AF59b46C5443aF9C20fAd98347671` |
+| Whitelist | `0xC0E6b9F214151cEDbeD3735dF77E9d8EE70ebA8A` |
+| AddressBook | `0x48FE24a69417038a2D3d46B2B6B9De03b884eD72` |
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| WETH | `0x4200000000000000000000000000000000000006` |
+| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` |
+
+## Testnet (Base Sepolia)
+
+| Contract | Address |
+|----------|---------|
+| BatchSettler | `0x766bD3aF1D102f7EbcB65a7B7bC12478C2DbA918` |
+| Controller | `0xB64a532B71E711B5F45B906D9Fc09c184EC54CA0` |
+| MarginPool | `0x727ddBD04A691E73feaE26349F48144953Ef20d6` |
+| OTokenFactory | `0x1cEA6AE65c06972249831f617ea196863Fb66e6D` |
+| Oracle | `0x101cB9E8a3105EfB18A81E768238eFc041F31E15` |
+| Whitelist | `0xda732e343cfAd50Df28881B66f111779671a17E1` |
+| AddressBook | `0x9e8cd9a79d667f4154e123604bF62d35a3d9673C` |
+| LUSD (mock USDC) | `0xAB51a471493832C1D70cef8ff937A850cf37c860` |
+| LETH (mock WETH) | `0x8A6Aa2304797898d46eC1d342Fedc817D3a973B6` |
+| LBTC (mock cbBTC) | `0x39fA11EbBE82699Fd9F79C566D7384064571d2b4` |
+
+All contracts are UUPS-proxied and verified on BaseScan.
+
+## Key functions
+
+### executeOrder
+
+```solidity
+function executeOrder(
+    Quote calldata quote,
+    bytes calldata signature,
+    uint256 amount,
+    uint256 collateral
+) external returns (uint256 vaultId)
+```
+
+On **BatchSettler**. Permissionless. Atomically: verifies the market maker's EIP-712 signature, locks your collateral, mints oTokens to the MM, and pays premium to you (minus 4% protocol fee).
+
+The `Quote` struct:
+
+```solidity
+struct Quote {
+    address oToken;
+    uint256 bidPrice;
+    uint256 deadline;
+    uint256 quoteId;
+    uint256 maxAmount;
+    uint256 makerNonce;
+}
+```
+
+All fields come directly from the `GET /prices` response. `amount` is in oToken units (8 decimals, `1e8` = 1 ETH notional).
+
+### Collateral calculation
+
+**Puts:**
+```
+collateral = (amount * strike_price_8dec) / 1e10
+```
+Result in USDC (6 decimals).
+
+**ETH Calls:**
+```
+collateral = amount * 1e10
+```
+Result in WETH (18 decimals).
+
+**BTC Calls:**
+```
+collateral = amount
+```
+Result in cbBTC (8 decimals, same as oToken).
+
+### makerNonce
+
+```solidity
+function makerNonce(address mm) external view returns (uint256)
+```
+
+Current nonce for a market maker. Quotes with stale nonce are rejected.
+
+### incrementMakerNonce
+
+```solidity
+function incrementMakerNonce() external returns (uint256)
+```
+
+Invalidates all outstanding signed quotes for the caller. Used as a circuit breaker.
+
+### getVault
+
+```solidity
+function getVault(
+    address owner,
+    uint256 vaultId
+) external view returns (Vault memory)
+```
+
+On **Controller**. Returns vault details: `shortOtoken`, `collateralAsset`, `shortAmount`, `collateralAmount`.

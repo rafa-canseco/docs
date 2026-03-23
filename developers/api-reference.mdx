@@ -1,0 +1,94 @@
+---
+title: "API Reference"
+description: "Public endpoints for reading prices, positions, and executing trades."
+---
+
+Use the API URL for your target environment: `https://api.b1nary.app` (production) or `https://optionsprotocolbackend-staging.up.railway.app` (testnet).
+
+## Public endpoints
+
+No authentication required.
+
+### GET /prices
+
+Live option price sheet. Returns the best bid per oToken across all market makers.
+
+**Parameters:**
+- `asset` (optional): `eth` or `btc`
+
+**Response fields per entry:**
+- `strike`, `expiry`, `premium`, `delta`, `iv`, `spot`
+- `available_amount`, `otoken_address`
+- `option_type`: `PUT` or `CALL`
+- EIP-712 quote data: `signature`, `mm_address`, `bid_price_raw`, `deadline`, `quote_id`, `max_amount_raw`, `maker_nonce`
+
+Returns **503** if the circuit breaker is active. Wait and retry.
+
+```bash
+curl https://api.b1nary.app/prices?asset=eth
+```
+
+### GET /positions/\{address\}
+
+All positions for a wallet.
+
+**Response fields:**
+- `otoken_address`, `vault_id`, `amount`
+- `strike_price`, `expiry`, `is_put`
+- `is_settled`, `is_itm`, `settlement_type`, `outcome`
+- `net_premium`, `collateral`, `asset`
+
+```bash
+curl https://api.b1nary.app/positions/0xYourAddress
+```
+
+### GET /spot
+
+Current spot price for an asset.
+
+```bash
+curl https://api.b1nary.app/spot?asset=eth
+```
+
+### GET /capacity
+
+Market capacity, max position size, market status (active/degraded/full).
+
+```bash
+curl https://api.b1nary.app/capacity?asset=eth
+```
+
+### GET /prices/simulate
+
+Back-test a 7-day put at a given strike. Returns premium, assignment outcome, comparison vs hold/stake/DCA.
+
+```bash
+curl "https://api.b1nary.app/prices/simulate?strike=2400&side=sell"
+```
+
+### POST /faucet
+
+Testnet only. Sends test tokens + gas.
+
+```bash
+curl -X POST https://optionsprotocolbackend-staging.up.railway.app/faucet \
+  -H "Content-Type: application/json" \
+  -d '{"address": "0xYourAddress"}'
+```
+
+One claim per wallet. Receives 0.005 ETH (gas), 50 LETH (test WETH), 100,000 LUSD (test USDC).
+
+## Market maker endpoints
+
+Require `X-API-Key` header. See the [Market Making guide](/market-making/overview) for details.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/mm/quotes` | Submit signed EIP-712 quotes |
+| GET | `/mm/quotes` | Active, non-expired quotes |
+| DELETE | `/mm/quotes` | Cancel all active quotes |
+| GET | `/mm/fills` | Filled trades |
+| GET | `/mm/positions` | Open positions by oToken |
+| GET | `/mm/exposure` | Risk summary |
+| GET | `/mm/market` | Market data: spot, IV, fee, gas, available oTokens |
+| WS | `/mm/stream` | Real-time fill notifications |
