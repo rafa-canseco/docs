@@ -1,0 +1,74 @@
+---
+title: "Range Earn"
+description: "Set a lower and upper price. Earn premium from both sides."
+---
+
+Range lets you earn premium by setting both a floor and a ceiling for an asset's price. If the price stays within your range, all your capital comes back and you keep premium from both legs.
+
+Under the hood, Range places two positions in a single flow: a put at your lower bound and a call at your upper bound. You earn premium from both.
+
+## How it works
+
+<Steps>
+  <Step title="Pick your range">
+    Choose a lower price (where you'd buy) and an upper price (where you'd sell). The wider your range, the safer but lower premium.
+  </Step>
+  <Step title="Deposit collateral">
+    You need USDC for the put side and the asset (ETH or cbBTC) for the call side. If you only have USDC, the protocol auto-swaps the call portion to the asset via Uniswap before placing the position.
+  </Step>
+  <Step title="Earn premium from both sides">
+    A market maker pays you premium for the put and premium for the call. Both payments arrive in your wallet immediately.
+  </Step>
+  <Step title="Wait for expiry">
+    At expiry (weekly, 08:00 UTC), three outcomes are possible.
+  </Step>
+</Steps>
+
+## Three outcomes at expiry
+
+### Price stays in range (best case)
+
+Both positions expire OTM. All your collateral comes back. You keep premium from both sides.
+
+### Price drops below your lower bound
+
+Your put is assigned. You buy the asset at your lower price. Your call expires worthless (you get that collateral back). You keep both premiums. Your effective purchase price is `lower bound - total premium earned`.
+
+### Price rises above your upper bound
+
+Your call is assigned. You sell the asset at your upper price. Your put expires worthless (you get that collateral back). You keep both premiums. You end up in USDC with profit = `appreciation to upper bound + total premium`.
+
+## Auto-swap
+
+If you only hold USDC and want to use Range, the protocol handles the conversion automatically:
+
+1. Calculates how much of the asset you need for the call leg
+2. Swaps that portion from USDC to the asset via Uniswap V3
+3. Places both positions (put with USDC, call with the asset)
+
+All in a single transaction flow. You don't need to pre-buy the asset.
+
+## Range vs liquidity pools
+
+Range is similar to providing liquidity to a concentrated LP (like Uniswap V3), but with key differences:
+
+| | Range Earn | LP Position |
+|---|---|---|
+| **Premium** | Paid upfront, yours immediately | Accrues as fees over time |
+| **Duration** | Fixed (weekly expiry) | Open-ended |
+| **Impermanent loss** | You know the worst case upfront | Unpredictable |
+| **Complexity** | Pick two prices, done | Manage ticks, rebalance |
+
+## Example
+
+ETH is at $2,000. You set a range of $1,900 (lower) to $2,100 (upper).
+
+- **Put premium:** $15 (for committing to buy at $1,900)
+- **Call premium:** $12 (for committing to sell at $2,100)
+- **Total earned:** $27 upfront
+
+If ETH stays between $1,900 and $2,100 at expiry, you get everything back plus $27.
+
+If ETH drops to $1,850, you buy at $1,900 but your effective cost is $1,873 ($1,900 - $27 premium).
+
+If ETH rises to $2,150, you sell at $2,100 and keep the $27. Total gain = $100 appreciation + $27 premium = $127.

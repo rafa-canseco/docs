@@ -6,9 +6,9 @@
   },
   "name": "b1nary",
   "colors": {
-    "primary": "#00E676",
-    "light": "#69F0AE",
-    "dark": "#00C853"
+    "primary": "#18E299",
+    "light": "#18E299",
+    "dark": "#0C8C5E"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -28,6 +28,8 @@
             "group": "Strategies",
             "pages": [
               "strategies",
+              "range",
+              "positions",
               "faq"
             ]
           }
@@ -40,6 +42,7 @@
             "group": "Build on b1nary",
             "pages": [
               "developers/getting-started",
+              "developers/environments",
               "developers/api-reference",
               "developers/smart-contracts",
               "developers/integration-guide"
