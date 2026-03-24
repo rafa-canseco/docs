@@ -1,0 +1,75 @@
+---
+title: "Hedging"
+description: "Delta hedging with perpetual futures."
+---
+
+b1nary handles the options side (quotes, settlement, collateral). Hedging is your responsibility. The protocol gives you the data you need. Where and how you hedge is up to you.
+
+## What b1nary gives you
+
+- **Delta** per option: from `GET /mm/market` you get spot price and IV. Compute delta using Black-Scholes.
+- **Real-time fills** via WebSocket (`WS /mm/stream`): the moment a user fills your quote, you know the exact amount.
+- **Position summary** via `GET /mm/positions` and `GET /mm/exposure`: your current open risk at a glance.
+
+## How to hedge
+
+When you receive a fill, compute the delta and open a hedge position on an external venue.
+
+**For puts:** delta is negative, so you **short** the underlying.
+
+**For calls:** delta is positive, so you **long** the underlying.
+
+**Hedge size** = `|delta| * number_of_options_in_ETH`
+
+### On fill (Hyperliquid example)
+
+```python
+from hyperliquid.exchange import Exchange
+
+# On each fill:
+amount_eth = int(fill["amount"]) / 1e8  # oToken has 8 decimals
+delta = bs_delta(is_put, spot, strike, T, r, iv)
+hedge_size = abs(delta) * amount_eth
+
+# For puts: short ETH. For calls: long ETH.
+is_buy = not is_put
+exchange.market_open(
+    "ETH", is_buy, round(hedge_size, 4), slippage=0.05
+)
+```
+
+### Continuous rebalance
+
+Every cycle (e.g., 60 seconds), recalculate delta with updated spot and IV. If delta changes by more than 0.02, adjust hedge size.
+
+### At expiry
+
+Close the hedge. If OTM, the hedge should have roughly broken even. If ITM, the hedge profited in the same direction as the option's intrinsic value.
+
+## Alternative hedge venues
+
+You can hedge anywhere with ETH perpetual futures or spot:
+- Hyperliquid (our reference implementation)
+- Binance, Bybit, OKX, dYdX
+- On-chain perps (GMX, Kwenta)
+- Spot: buy/sell ETH directly
+
+The only requirement is speed. Your hedge venue must be fast enough to react to fills.
+
+## No hedge (directional mode)
+
+If you have an informational edge on ETH direction, you can skip hedging entirely. You make a directional bet with the added advantage of earning the spread. Higher risk, valid for agents with strong price prediction models.
+
+## P&L tracking
+
+Track per-position:
+- Premium paid (from fill data: `gross_premium`)
+- Hedge entry price and size
+- Hedge exit price (when closed at expiry or rebalanced)
+- Settlement outcome (OTM = $0, ITM = intrinsic value)
+- Net P&L = `-premium + settlement + hedge_pnl`
+
+And portfolio-level:
+- Total premium paid across all positions
+- Net delta exposure (sum of `delta * amount` across open positions)
+- Cumulative realized P&L from closed positions

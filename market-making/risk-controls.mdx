@@ -1,0 +1,98 @@
+---
+title: "Risk Controls"
+description: "Circuit breakers, quote deadlines, and exposure management."
+---
+
+## Circuit breaker
+
+b1nary runs a circuit breaker that monitors ETH/USD via Chainlink every 10 seconds. If ETH moves more than 2% from a reference price:
+- `GET /prices` returns 503 (users can't see quotes)
+- The protocol's own MM nonce is incremented (quotes invalidated)
+
+You should also implement your own circuit breaker. Call `incrementMakerNonce()` on BatchSettler to instantly invalidate all your outstanding quotes:
+
+```python
+settler.functions.incrementMakerNonce().transact({"from": YOUR_ADDRESS})
+```
+
+## Quote deadlines
+
+Set short deadlines (e.g., 5 minutes). This limits the time window where a stale quote can be filled against you.
+
+```python
+"deadline": int(time.time()) + 300  # 5 minutes
+```
+
+## Max amount
+
+Set `maxAmount` per quote to limit your exposure per option. Start small (1 ETH notional = `100000000` in 8 decimals) and increase as you gain confidence.
+
+## Per-quote cancellation
+
+Cancel specific quotes without invalidating everything:
+
+```python
+# On-chain: cancel by quote hash
+quote_hash = settler.functions.hashQuote(quote_struct).call()
+settler.functions.cancelQuote(quote_hash).transact({"from": YOUR_ADDRESS})
+
+# Off-chain: cancel all quotes in the API
+requests.delete(f"{API}/mm/quotes", headers=HEADERS)
+```
+
+## Settlement
+
+Options expire weekly at **08:00 UTC**. Settlement is automatic. You do not need to do anything on-chain.
+
+### OTM (out-of-the-money)
+
+The user's collateral is returned. Your oTokens expire worthless. Your cost was the premium you paid. If you hedged correctly, the hedge roughly broke even.
+
+### ITM (in-the-money)
+
+Physical delivery occurs. The operator redeems your oTokens for the user's collateral, swaps it via Uniswap to deliver the contra-asset.
+
+| Option | User locked | User receives (ITM) |
+|--------|-------------|---------------------|
+| PUT | USDC | ETH at strike price |
+| CALL | WETH | USDC at strike price |
+
+Your net P&L: `premium_paid - intrinsic_value + hedge_pnl`. If you hedged delta correctly, the hedge P&L offsets the intrinsic value.
+
+**At expiry:** close your hedge position on your external venue. The b1nary side is handled automatically.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need to run a node?">
+    No. Use any Base RPC. Public endpoints: `https://mainnet.base.org` (production) or `https://sepolia.base.org` (testnet).
+  </Accordion>
+
+  <Accordion title="How often should I refresh quotes?">
+    Our reference MM refreshes every 60 seconds. Faster is better for tighter spreads.
+  </Accordion>
+
+  <Accordion title="Can my quotes be partially filled?">
+    Yes. A single quote can be filled across multiple `executeOrder` calls until `maxAmount` is reached.
+  </Accordion>
+
+  <Accordion title="What if I don't hedge?">
+    You take directional risk. If you're bullish ETH and selling puts, not hedging can be profitable. But you're speculating with an edge, not market-making.
+  </Accordion>
+
+  <Accordion title="What happens if the circuit breaker triggers?">
+    `GET /prices` returns 503. Users can't fill quotes through the API. Your existing signed quotes remain valid on-chain until the deadline passes or you call `incrementMakerNonce()`.
+  </Accordion>
+
+  <Accordion title="Do I pay gas?">
+    No. Users pay gas to execute orders. You only pay gas for: approving USDC (once), incrementing nonce (rare), and cancelling quotes on-chain (optional).
+  </Accordion>
+
+  <Accordion title="What's the protocol fee?">
+    4% (400 bps) of gross premium. Deducted automatically. If you bid 5 USDC, the user receives 4.80 USDC and the protocol takes 0.20 USDC.
+  </Accordion>
+
+  <Accordion title="Can multiple MMs compete?">
+    Yes. `GET /prices` shows the best bid across all MMs. If another MM bids higher, their quote is shown to users.
+  </Accordion>
+</AccordionGroup>

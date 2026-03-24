@@ -1,0 +1,46 @@
+---
+title: "How It Works"
+description: "Earn premium by setting the price you'd buy or sell at."
+---
+
+## The 4-step flow
+
+<Steps>
+  <Step title="Set your price">
+    Pick a price you'd buy or sell at. Further from the current price means safer but lower premium. You can also use **Range** to set both a lower and upper bound.
+  </Step>
+  <Step title="Get paid upfront">
+    A market maker pays you a premium immediately. This money is yours no matter what. You see the exact amount before you accept.
+  </Step>
+  <Step title="Wait for expiry">
+    Your capital is locked for the duration (e.g. 7 days). Track your position on the Positions page.
+  </Step>
+  <Step title="Two outcomes (or three with Range)">
+    **I'd Buy (Put):** Price stays above your strike? Capital back. Price drops? You buy at your price.
+
+    **I'd Sell (Call):** Price stays below your strike? Asset back. Price rises? You sell at your price.
+
+    **Range:** Price stays between your bounds? Everything back. Moves out? You buy (downside) or sell (upside) at the price you chose.
+
+    Either way, you keep the premium.
+  </Step>
+</Steps>
+
+## Range Earn
+
+Range lets you set both a lower and upper price. If the asset stays within your range, all your capital comes back and you keep premium from both sides.
+
+If the price moves outside your range:
+- **Drops below the lower bound:** you buy the asset at the lower price you chose
+- **Rises above the upper bound:** you sell the asset at the upper price you chose
+
+Range is similar to providing liquidity to a pool, but the premium is paid upfront instead of accumulating as fees over time.
+
+## Settlement
+
+Options expire weekly at **08:00 UTC**. Settlement is automatic.
+
+- **OTM (price stayed on your side):** collateral returned. You keep the premium.
+- **ITM (price crossed your strike):** physical delivery occurs. For puts, you receive the asset. For calls, you receive USDC.
+
+Settlement uses Aave V3 flash loans and Uniswap V3 swaps. Atomic, trustless, fully on-chain.

@@ -1,97 +1,57 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "b1nary"
+description: "Set your price. Get paid."
 ---
 
-## Setting up
+b1nary is a simplified options protocol on Base. You sell cash-secured puts or covered calls on ETH and BTC, and earn premium instantly. Fully on-chain, permissionless, no sign-up required.
 
-Get your documentation site up and running in minutes.
+## How it works
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
+You pick a price you'd buy or sell at. A market maker pays you a premium upfront. Your capital is locked until expiry. If the price stays on your side, you get everything back plus the premium. If not, you buy or sell at the price you chose. Either way, you keep the premium.
+
+<CardGroup cols={2}>
+  <Card title="How It Works" icon="list-ol" href="/how-it-works">
+    4-step walkthrough of the earn flow.
+  </Card>
+  <Card title="Options 101" icon="graduation-cap" href="/options-101">
+    Puts, calls, strikes, premium. Plain English.
+  </Card>
+  <Card title="Strategies" icon="rotate" href="/strategies">
+    The Wheel, income generation, buying the dip.
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/faq">
+    Common questions answered.
+  </Card>
+</CardGroup>
+
+## For developers
+
+Build agents and integrations on b1nary. Public API, signed quotes, on-chain execution.
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/developers/api-reference">
+    Endpoints, parameters, response formats.
+  </Card>
+  <Card title="Integration Guide" icon="plug" href="/developers/integration-guide">
+    Full Python example: faucet to execution.
+  </Card>
+</CardGroup>
+
+## For market makers
+
+Provide liquidity, earn the spread. EIP-712 signed quotes, delta hedging, WebSocket fills.
+
+<Card title="Market Making Guide" icon="building-columns" href="/market-making/overview">
+  Everything you need to start quoting on b1nary.
 </Card>
 
-## Make it yours
+## Key facts
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+| | |
+|---|---|
+| **Chain** | Base (mainnet) / Base Sepolia (testnet) |
+| **Assets** | ETH, cbBTC |
+| **Expiry** | Weekly, 08:00 UTC |
+| **Settlement** | Physical delivery (Aave flash loan + Uniswap) |
+| **Collateral** | Fully collateralized. No margin, no liquidations. |
+| **Protocol fee** | 4% of premium |

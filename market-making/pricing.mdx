@@ -1,0 +1,78 @@
+---
+title: "Pricing"
+description: "Black-Scholes reference and spread selection."
+---
+
+b1nary provides market data. You bring your own pricing model.
+
+## Market data
+
+`GET /mm/market` returns:
+
+```json
+{
+  "eth_spot": 2450.50,
+  "eth_iv": 0.65,
+  "protocol_fee_bps": 400,
+  "gas_price_gwei": 0.01,
+  "available_otokens": [
+    {
+      "address": "0x...",
+      "strike_price": 2400.0,
+      "expiry": 1741200000,
+      "is_put": true
+    }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `eth_spot` | Current ETH/USD price from Chainlink |
+| `eth_iv` | Implied volatility from Deribit (annualized, decimal: 0.65 = 65%) |
+| `protocol_fee_bps` | Protocol fee: 400 = 4%. Deducted from gross premium |
+| `available_otokens` | Options available for quoting, created by the platform each week |
+
+## Black-Scholes reference
+
+```python
+from math import log, sqrt, exp
+from scipy.stats import norm
+
+def bs_price(is_put, spot, strike, T, r, sigma):
+    """T = time to expiry in years, r = risk-free rate, sigma = IV."""
+    if T <= 0:
+        return max(strike - spot, 0) if is_put else max(spot - strike, 0)
+    d1 = (log(spot / strike) + (r + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+    d2 = d1 - sigma * sqrt(T)
+    if is_put:
+        return strike * exp(-r * T) * norm.cdf(-d2) - spot * norm.cdf(-d1)
+    return spot * norm.cdf(d1) - strike * exp(-r * T) * norm.cdf(d2)
+
+def bs_delta(is_put, spot, strike, T, r, sigma):
+    """Returns delta: [-1, 0] for puts, [0, 1] for calls."""
+    if T <= 0:
+        if is_put:
+            return -1.0 if spot < strike else 0.0
+        return 1.0 if spot > strike else 0.0
+    d1 = (log(spot / strike) + (r + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+    return norm.cdf(d1) - 1.0 if is_put else norm.cdf(d1)
+
+def bid_price(is_put, spot, strike, T, r, sigma, spread_bps=300):
+    theo = bs_price(is_put, spot, strike, T, r, sigma)
+    return max(theo * (1 - spread_bps / 10000), 1e-6)
+```
+
+You can use any pricing model. Black-Scholes is a starting point. Advanced models account for skew, kurtosis, and realized vs implied vol.
+
+## Spread selection
+
+The spread (in basis points) controls your edge vs fill rate:
+
+| Spread | Edge | Fills |
+|--------|------|-------|
+| **Wide** (500 bps = 5%) | More per trade | Fewer fills |
+| **Tight** (100 bps = 1%) | Less per trade | More fills |
+| **Adaptive** | Widen when volatility is high, tighten when confident | Dynamic |
+
+Start with 300 bps (3%) and adjust based on your fill rate and P&L.

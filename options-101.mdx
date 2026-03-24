@@ -1,0 +1,48 @@
+---
+title: "Options 101"
+description: "Puts, calls, strikes, premium. No jargon."
+---
+
+## What is an option?
+
+An option is a contract that gives the buyer the right (not the obligation) to buy or sell an asset at a specific price (the **strike**) before a specific date (the **expiry**). The seller of the option collects a fee called **premium** upfront, in exchange for taking on the obligation.
+
+On b1nary, you are the seller. You earn premium. A market maker is the buyer.
+
+## Key terms
+
+| Term | Meaning |
+|------|---------|
+| **Strike price** | The price at which you commit to buy or sell. You choose this. |
+| **Expiry** | When the contract ends. b1nary options expire weekly at 08:00 UTC. |
+| **Premium** | Money you earn upfront for selling the option. Yours regardless of outcome. |
+| **Put option** | The right to sell an asset. When you sell a put, you commit to *buy* at the strike if the price drops below it. |
+| **Call option** | The right to buy an asset. When you sell a call, you commit to *sell* at the strike if the price rises above it. |
+| **ITM (in-the-money)** | The option has value at expiry. The seller gets assigned. |
+| **OTM (out-of-the-money)** | The option expires worthless. The seller keeps collateral and premium. |
+| **Assignment** | When an ITM option expires, the seller's obligation is executed. |
+
+## Selling a put
+
+You deposit USDC as collateral and choose a strike price below the current market price. You earn premium immediately.
+
+- **Price stays above your strike (OTM):** your USDC is returned. You keep the premium.
+- **Price drops below your strike (ITM):** you buy the asset at your strike price. You still keep the premium, so your effective purchase price is `strike - premium`.
+
+## Selling a covered call
+
+You deposit the asset (ETH or cbBTC) as collateral and choose a strike price above the current market price. You earn premium immediately.
+
+- **Price stays below your strike (OTM):** your asset is returned. You keep the premium. Income on your holdings.
+- **Price rises above your strike (ITM):** you sell the asset at your strike price. You keep the premium plus the appreciation from current price to strike.
+
+## Risk profile
+
+| Scenario | What happens | Risk |
+|----------|-------------|------|
+| Sell put, price stays above strike | Collateral returned + keep premium | None |
+| Sell put, price drops below strike | You buy asset at strike (minus premium) | Asset could drop further |
+| Sell call, price stays below strike | Asset returned + keep premium | None |
+| Sell call, price rises above strike | You sell asset at strike (plus premium) | You miss gains above strike |
+
+**What you cannot lose:** more than your collateral. b1nary is fully collateralized. No margin, no liquidations.
