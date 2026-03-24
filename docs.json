@@ -1,7 +1,9 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "quill",
-  "appearance": "dark",
+  "theme": "maple",
+  "appearance": {
+    "default": "dark"
+  },
   "name": "b1nary",
   "colors": {
     "primary": "#00E676",
