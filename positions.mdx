@@ -1,0 +1,84 @@
+---
+title: "Positions & Settlement"
+description: "What happens at expiry and how to manage your positions."
+---
+
+## Checking your positions
+
+All your open and settled positions are visible on the **Positions** page in the app. Each position shows:
+
+- Asset (ETH or cbBTC)
+- Strike price
+- Expiry date
+- Premium earned
+- Current status (active, settled)
+- Outcome (if settled)
+
+Developers can query positions via the API:
+
+```bash
+curl https://api.b1nary.app/positions/0xYourAddress
+```
+
+## What happens at expiry
+
+Options expire weekly at **08:00 UTC**. Settlement is fully automatic. You don't need to do anything.
+
+### OTM (price stayed on your side)
+
+Your collateral is returned to your wallet. You keep the premium you earned. This is the best outcome.
+
+- **Puts:** price stayed above your strike. USDC returned.
+- **Calls:** price stayed below your strike. Asset returned.
+
+### ITM (price crossed your strike)
+
+Physical delivery occurs automatically via Aave V3 flash loan + Uniswap V3 swap.
+
+- **Puts:** you buy the asset at your strike price. You receive the asset in your wallet.
+- **Calls:** you sell the asset at your strike price. You receive USDC in your wallet.
+
+You keep the premium in both cases. Your effective price is always better than market at the time you placed the position.
+
+### ATM (price equals strike exactly)
+
+Treated as OTM. Your collateral is returned. You keep the premium.
+
+## What to do after settlement
+
+### If your put expired OTM
+
+You're back in USDC with your premium. Sell another put to keep earning.
+
+### If your put was assigned (ITM)
+
+You now hold the asset. You have two options:
+
+1. **Sell a covered call** above your cost basis (`strike - premium`). This is the Wheel strategy. You earn more premium while waiting for the price to recover.
+2. **Hold the asset.** You bought at a price you were comfortable with, and at a discount thanks to the premium.
+
+### If your call expired OTM
+
+Your asset is back in your wallet with the premium earned. Sell another call to keep generating income.
+
+### If your call was assigned (ITM)
+
+You sold the asset at your strike price. You're now in USDC. You made money (premium + appreciation to strike). Start the cycle again by selling a put at a price you'd buy back at.
+
+## The Wheel in practice
+
+After each settlement, check your outcome and continue the cycle:
+
+```
+USDC → sell put → [OTM: repeat] or [ITM: now hold asset]
+Asset → sell call → [OTM: repeat] or [ITM: back to USDC]
+```
+
+Every step earns premium. The Wheel works in any market direction.
+
+## Settlement timing
+
+- **Expiry:** weekly, 08:00 UTC
+- **Settlement execution:** within minutes of expiry
+- **Collateral return:** same transaction as settlement
+- The settlement bot runs automatically. No user action required.

@@ -1,0 +1,64 @@
+---
+title: "Environments"
+description: "Contract addresses, API URLs, and chain IDs for production and testnet."
+---
+
+## Production (Base mainnet)
+
+| | |
+|---|---|
+| **Chain** | Base (chain ID `8453`) |
+| **API** | `https://api.b1nary.app` |
+| **App** | `https://b1nary.app` |
+| **Block explorer** | `https://basescan.org` |
+| **RPC** | `https://mainnet.base.org` |
+| **Assets** | ETH, cbBTC. Puts collateralized with USDC, calls with WETH or cbBTC. |
+
+| Contract | Address |
+|----------|---------|
+| BatchSettler | `0xd281ADdB8b5574360Fd6BFC245B811ad5C582a3B` |
+| Controller | `0x2Ab6D1c41f0863Bc2324b392f1D8cF073cF42624` |
+| MarginPool | `0xa1e04873F6d112d84824C88c9D6937bE38811657` |
+| OTokenFactory | `0x0701b7De84eC23a3CaDa763bCA7A9E324486F6D7` |
+| Oracle | `0x09daa0194A3AF59b46C5443aF9C20fAd98347671` |
+| Whitelist | `0xC0E6b9F214151cEDbeD3735dF77E9d8EE70ebA8A` |
+| AddressBook | `0x48FE24a69417038a2D3d46B2B6B9De03b884eD72` |
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| WETH | `0x4200000000000000000000000000000000000006` |
+| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` |
+
+## Testnet (Base Sepolia)
+
+| | |
+|---|---|
+| **Chain** | Base Sepolia (chain ID `84532`) |
+| **API** | `https://optionsprotocolbackend-staging.up.railway.app` |
+| **App** | `https://staging.b1nary.app` |
+| **Block explorer** | `https://sepolia.basescan.org` |
+| **RPC** | `https://sepolia.base.org` |
+| **Assets** | ETH, BTC (mock tokens). No real money. |
+
+| Contract | Address |
+|----------|---------|
+| BatchSettler | `0x766bD3aF1D102f7EbcB65a7B7bC12478C2DbA918` |
+| Controller | `0xB64a532B71E711B5F45B906D9Fc09c184EC54CA0` |
+| MarginPool | `0x727ddBD04A691E73feaE26349F48144953Ef20d6` |
+| OTokenFactory | `0x1cEA6AE65c06972249831f617ea196863Fb66e6D` |
+| Oracle | `0x101cB9E8a3105EfB18A81E768238eFc041F31E15` |
+| Whitelist | `0xda732e343cfAd50Df28881B66f111779671a17E1` |
+| AddressBook | `0x9e8cd9a79d667f4154e123604bF62d35a3d9673C` |
+| LUSD (mock USDC) | `0xAB51a471493832C1D70cef8ff937A850cf37c860` |
+| LETH (mock WETH) | `0x8A6Aa2304797898d46eC1d342Fedc817D3a973B6` |
+| LBTC (mock cbBTC) | `0x39fA11EbBE82699Fd9F79C566D7384064571d2b4` |
+
+All contracts are UUPS-proxied and verified on BaseScan.
+
+## Decimal reference
+
+| Type | Decimals | Example |
+|------|----------|---------|
+| oToken amounts | 8 | `100000000` = 1 ETH notional |
+| Strike prices (on-chain) | 8 | `240000000000` = $2,400 |
+| USDC | 6 | `5000000` = 5 USDC |
+| WETH | 18 | `1000000000000000000` = 1 WETH |
+| cbBTC | 8 | `100000000` = 1 cbBTC |
