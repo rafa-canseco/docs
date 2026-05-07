@@ -1,9 +1,19 @@
 ---
 title: "Integration Guide"
-description: "Complete Python example: from faucet to execution."
+description: "Direct trade and bridge-and-trade flows across Base and Solana."
 ---
 
-## Full example
+## Choosing an execution path
+
+Every quote has a target `chain`.
+
+- Use **direct Base trade** when the quote is on Base and the Base smart trading account has enough collateral.
+- Use **direct Solana trade** when the quote is on Solana and the Solana embedded trading account has enough collateral.
+- Use **bridge-and-trade** when USDC exists across the user's b1nary account but is on the wrong chain for the selected cash-secured put.
+
+Covered calls require asset collateral on the target chain. Bridge-and-trade is for USDC collateral only.
+
+## Direct Base example
 
 This is a complete working example of selling a cash-secured put on b1nary using Python.
 
@@ -80,7 +90,7 @@ positions = requests.get(
 ).json()
 ```
 
-## Step-by-step breakdown
+## Direct Base step-by-step
 
 ### 1. Get test tokens
 
@@ -112,6 +122,81 @@ Call `executeOrder(quote, signature, amount, collateral)` on BatchSettler. Premi
 
 `GET /positions/{address}` shows all open and settled positions with the `outcome` field.
 
+## Direct Solana trade
+
+For Solana quotes (`chain = "solana"`), build a Solana `ExecuteOrder` transaction using the quote fields from `GET /prices`.
+
+Important rules:
+
+- The user's Solana embedded trading wallet is the trading authority.
+- Backend/operator sponsorship should pay transaction fees and setup costs where supported.
+- USDC and wSOL use the SPL Token Program.
+- TSLAx uses Token-2022: `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`.
+- SOL covered calls must wrap SOL to wSOL before execution if wSOL collateral is insufficient.
+- Use the actual token balance on Solana. Do not assume a bridge `burn_amount` equals final available collateral.
+
+Pseudo-flow:
+
+```ts
+const prices = await fetch(`${API}/prices?asset=sol`).then((r) => r.json());
+const quote = prices.find((q) => q.chain === "solana" && q.option_type === "put");
+
+// 1. Ensure the user's b1nary account has a verified Solana trading wallet.
+// 2. Ensure USDC/wSOL/TSLAx token accounts exist and collateral is sufficient.
+// 3. Build ExecuteOrder transaction from quote fields.
+// 4. User signs where authority is required.
+// 5. Backend/operator sponsors fee payer and setup where supported.
+// 6. Submit and monitor with GET /positions/{solanaTradingWallet}
+//    or GET /b1nary-account/positions?privy_user_id=...
+```
+
+## Bridge-and-trade
+
+Bridge-and-trade consolidates USDC with Circle CCTP V2, then executes on the destination chain.
+
+### Base -> Solana
+
+Use this when the user wants a Solana cash-secured put but USDC is on Base.
+
+<Steps>
+  <Step title="Resolve the Solana USDC token account">
+    Derive the user's Solana USDC ATA. This ATA is the CCTP `mint_recipient`. Do not use the Solana wallet owner as `mint_recipient`.
+  </Step>
+  <Step title="Reserve the bridge job">
+    Call `POST /api/bridge-and-trade/reserve` before burning on Base. Backend validates or creates the Solana USDC ATA with the operator hot wallet as payer.
+  </Step>
+  <Step title="Burn USDC on Base">
+    Send the Base smart-wallet batch: USDC `approve(TokenMessengerV2)` and CCTP V2 `depositForBurn`.
+  </Step>
+  <Step title="Finalize the bridge job">
+    Call `POST /api/bridge-and-trade` with the real `burn_tx_hash`, `source_chain="base"`, `dest_chain="solana"`, `quote_id`, `mint_recipient`, and `burn_amount`.
+  </Step>
+  <Step title="Wait and execute">
+    Poll `GET /api/bridge-status/{job_id}` until `mint_completed`, then execute the Solana trade using the actual USDC amount received after fees/rounding.
+  </Step>
+</Steps>
+
+### Solana -> Base
+
+Use this when the user wants a Base cash-secured put but USDC is on Solana.
+
+<Steps>
+  <Step title="Prepare sponsored burn">
+    Call `POST /api/bridge/solana-cctp-burn/prepare`. Backend creates a Solana CCTP burn transaction with the operator as fee payer.
+  </Step>
+  <Step title="Sign as owner">
+    The user's Solana trading wallet signs the prepared transaction as USDC owner. The user does not pay Solana gas.
+  </Step>
+  <Step title="Submit burn">
+    Call `POST /api/bridge/solana-cctp-burn/submit` with the signed transaction, `dest_chain="base"`, `mint_recipient` as the Base smart trading account, and the selected `quote_id`.
+  </Step>
+  <Step title="Wait and execute">
+    Poll `GET /api/bridge-status/{job_id}` until USDC is minted on Base, then execute the Base trade through the Base smart trading account.
+  </Step>
+</Steps>
+
+Bridge-only withdrawals use the same consolidation principle: bridge first, then withdraw from the destination trading account. For bridge-only jobs, use `quote_id=null` and `signed_trade_tx=null` where the endpoint supports it.
+
 ## The Wheel (automated loop)
 
 The optimal automated strategy is a continuous cycle:
@@ -122,7 +207,7 @@ The optimal automated strategy is a continuous cycle:
 4. If call OTM: keep asset and premium. Sell another call.
 5. If call ITM: asset sold at strike. Back to USDC. Repeat from step 1.
 
-Use `GET /positions/{address}` to check settlement outcomes and decide the next move.
+Use `GET /positions/{address}` or `GET /b1nary-account/positions?privy_user_id=...` to check settlement outcomes and decide the next move.
 
 ## Dependencies
 
