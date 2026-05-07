@@ -7,7 +7,7 @@ description: "Earn premium by setting the price you'd buy or sell at."
 
 <Steps>
   <Step title="Connect and deposit">
-    Sign in with your email or connect a wallet. b1nary creates a smart wallet for you. Deposit USDC, ETH, or cbBTC from your external wallet. All trades execute from this wallet with zero gas fees.
+    Sign in with your email or connect a wallet. b1nary creates trading accounts for you on Base and Solana. Deposit USDC, ETH, cbBTC, SOL, or TSLAx from your external wallet. All trades execute from your trading accounts with zero gas fees.
   </Step>
   <Step title="Set your price">
     Pick a price you'd buy or sell at. Further from the current price means safer but lower premium. You can also use **Range** to set both a lower and upper bound.
@@ -46,4 +46,4 @@ Options expire weekly at **08:00 UTC**. Settlement is automatic.
 - **OTM (price stayed on your side):** collateral returned. You keep the premium.
 - **ITM (price crossed your strike):** physical delivery occurs. For puts, you receive the asset. For calls, you receive USDC.
 
-Settlement uses Aave V3 flash loans and Uniswap V3 swaps. Atomic, trustless, fully on-chain.
+Settlement is atomic, trustless, and fully on-chain. Base settlement uses Aave V3 flash loans and Uniswap V3 swaps where needed; Solana settlement uses the b1nary Solana programs and SPL token accounts directly.

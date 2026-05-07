@@ -14,7 +14,7 @@ Under the hood, Range places two positions in a single flow: a put at your lower
     Choose a lower price (where you'd buy) and an upper price (where you'd sell). The wider your range, the safer but lower premium.
   </Step>
   <Step title="Deposit collateral">
-    You need USDC for the put side and the asset (ETH or cbBTC) for the call side. If you only have USDC, the protocol auto-swaps the call portion to the asset via Uniswap before placing the position.
+    You need USDC for the put side and the asset for the call side. If you only have USDC, the protocol can prepare the call-side collateral as part of the flow when supported for that asset and chain.
   </Step>
   <Step title="Earn premium from both sides">
     A market maker pays you premium for the put and premium for the call. Both payments arrive in your wallet immediately.
@@ -43,7 +43,7 @@ Your call is assigned. You sell the asset at your upper price. Your put expires 
 If you only hold USDC and want to use Range, the protocol handles the conversion automatically:
 
 1. Calculates how much of the asset you need for the call leg
-2. Swaps that portion from USDC to the asset via Uniswap V3
+2. Converts that portion from USDC to the asset through the supported route for that chain
 3. Places both positions (put with USDC, call with the asset)
 
 All in a single transaction flow. You don't need to pre-buy the asset.

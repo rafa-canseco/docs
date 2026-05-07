@@ -1,6 +1,6 @@
 ---
 title: "API Reference"
-description: "Public endpoints for reading prices, positions, and executing trades."
+description: "Public endpoints for prices, positions, accounts, bridge jobs, and trade execution."
 ---
 
 Use the API URL for your target environment: `https://api.b1nary.app` (production) or `https://optionsprotocolbackend-staging.up.railway.app` (testnet).
@@ -11,16 +11,16 @@ No authentication required.
 
 ### GET /prices
 
-Live option price sheet. Returns the best bid per oToken across all market makers.
+Live option price sheet. Returns the best bid per oToken across all market makers for Base and Solana markets.
 
 **Parameters:**
-- `asset` (optional): `eth` or `btc`
+- `asset` (optional): `eth`, `btc`, `sol`, or `tslax`
 
 **Response fields per entry:**
-- `strike`, `expiry`, `premium`, `delta`, `iv`, `spot`
+- `chain`, `asset`, `strike`, `expiry`, `premium`, `delta`, `iv`, `spot`
 - `available_amount`, `otoken_address`
 - `option_type`: `PUT` or `CALL`
-- EIP-712 quote data: `signature`, `mm_address`, `bid_price_raw`, `deadline`, `quote_id`, `max_amount_raw`, `maker_nonce`
+- quote data: `signature`, `mm_address`, `bid_price_raw`, `deadline`, `quote_id`, `max_amount_raw`, `maker_nonce`
 
 Returns **503** if the circuit breaker is active. Wait and retry.
 
@@ -40,6 +40,31 @@ All positions for a wallet.
 
 ```bash
 curl https://api.b1nary.app/positions/0xYourAddress
+```
+
+### GET /b1nary-account
+
+Returns the b1nary account, members, and verified wallets linked to a Privy user.
+
+```bash
+curl "https://api.b1nary.app/b1nary-account?privy_user_id=did:privy:..."
+```
+
+### GET /b1nary-account/by-wallet
+
+Resolves a b1nary account from a verified wallet address.
+
+```bash
+curl "https://api.b1nary.app/b1nary-account/by-wallet?chain=base&address=0xYourWallet"
+curl "https://api.b1nary.app/b1nary-account/by-wallet?chain=solana&address=YourSolanaWallet"
+```
+
+### GET /b1nary-account/positions
+
+Returns unified positions for all verified trading wallets in a b1nary account.
+
+```bash
+curl "https://api.b1nary.app/b1nary-account/positions?privy_user_id=did:privy:..."
 ```
 
 ### GET /spot
@@ -77,6 +102,92 @@ curl -X POST https://optionsprotocolbackend-staging.up.railway.app/faucet \
 ```
 
 One claim per wallet. Receives 0.005 ETH (gas), 50 LETH (test WETH), 100,000 LUSD (test USDC).
+
+## Bridge and trade endpoints
+
+These endpoints support USDC consolidation across Base and Solana with Circle CCTP V2. Use them when a user has enough USDC across chains but not enough on the target chain for the selected quote.
+
+### POST /api/bridge-and-trade/reserve
+
+Reserve a Base -> Solana bridge-and-trade job before burning USDC on Base. This prevents duplicate burns for the same quote.
+
+For Solana destinations, `mint_recipient` must be the user's Solana USDC associated token account (ATA), not the wallet owner. If the ATA does not exist, backend validates and creates it with the operator hot wallet as payer.
+
+```bash
+curl -X POST https://api.b1nary.app/api/bridge-and-trade/reserve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_chain": "base",
+    "dest_chain": "solana",
+    "user_id": "did:privy:...",
+    "mint_recipient": "SolanaUsdcAta",
+    "burn_amount": "12000000",
+    "quote_id": "100123",
+    "signed_trade_tx": null
+  }'
+```
+
+### POST /api/bridge-and-trade
+
+Create or finalize a bridge job after the source burn transaction exists. Used for Base -> Solana bridge-and-trade and bridge-only flows.
+
+```bash
+curl -X POST https://api.b1nary.app/api/bridge-and-trade \
+  -H "Content-Type: application/json" \
+  -d '{
+    "burn_tx_hash": "0x...",
+    "source_chain": "base",
+    "dest_chain": "solana",
+    "user_id": "did:privy:...",
+    "mint_recipient": "SolanaUsdcAta",
+    "burn_amount": "12000000",
+    "quote_id": "100123",
+    "signed_trade_tx": null
+  }'
+```
+
+### POST /api/bridge/solana-cctp-burn/prepare
+
+Prepare a sponsored Solana -> Base CCTP burn transaction. Backend uses the operator as fee payer; the user signs only as the Solana USDC owner.
+
+```bash
+curl -X POST https://api.b1nary.app/api/bridge/solana-cctp-burn/prepare \
+  -H "Content-Type: application/json" \
+  -d '{
+    "owner": "SolanaTradingWallet",
+    "dest_chain": "base",
+    "mint_recipient": "0xBaseSmartTradingAccount",
+    "burn_amount": "12000000",
+    "max_fee": "0",
+    "min_finality_threshold": 2000
+  }'
+```
+
+### POST /api/bridge/solana-cctp-burn/submit
+
+Submit the user-signed Solana burn transaction. Backend broadcasts it, creates the bridge job, waits for attestation, and mints on Base.
+
+```bash
+curl -X POST https://api.b1nary.app/api/bridge/solana-cctp-burn/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signed_transaction_base64": "...",
+    "dest_chain": "base",
+    "user_id": "did:privy:...",
+    "mint_recipient": "0xBaseSmartTradingAccount",
+    "burn_amount": "12000000",
+    "quote_id": "100123",
+    "signed_trade_tx": null
+  }'
+```
+
+### GET /api/bridge-status/\{job_id\}
+
+Poll bridge progress. Terminal statuses are `completed`, `mint_completed`, `mint_completed_trade_failed`, or `failed`.
+
+```bash
+curl https://api.b1nary.app/api/bridge-status/job-id
+```
 
 ## Market maker endpoints
 

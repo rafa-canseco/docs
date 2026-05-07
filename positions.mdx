@@ -7,7 +7,7 @@ description: "What happens at expiry and how to manage your positions."
 
 All your open and settled positions are visible on the **Positions** page in the app. Each position shows:
 
-- Asset (ETH or cbBTC)
+- Asset (ETH, cbBTC, SOL, or TSLAx)
 - Strike price
 - Expiry date
 - Premium earned
@@ -33,7 +33,7 @@ Your collateral is returned to your wallet. You keep the premium you earned. Thi
 
 ### ITM (price crossed your strike)
 
-Physical delivery occurs automatically via Aave V3 flash loan + Uniswap V3 swap.
+Physical delivery occurs automatically on the option's chain. Base positions use the Base settlement contracts, with Aave V3 flash loans and Uniswap V3 swaps where needed. Solana positions settle through the b1nary Solana programs and SPL token accounts.
 
 - **Puts:** you buy the asset at your strike price. You receive the asset in your wallet.
 - **Calls:** you sell the asset at your strike price. You receive USDC in your wallet.

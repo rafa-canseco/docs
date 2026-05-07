@@ -1,9 +1,9 @@
 ---
 title: "Smart Contracts"
-description: "Contract addresses and key functions."
+description: "Base contracts, Solana programs, and key execution functions."
 ---
 
-## Production (Base mainnet)
+## Production: Base mainnet
 
 | Contract | Address |
 |----------|---------|
@@ -17,6 +17,18 @@ description: "Contract addresses and key functions."
 | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | WETH | `0x4200000000000000000000000000000000000006` |
 | cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` |
+
+## Production: Solana mainnet
+
+| Program / Account | Address |
+|---|---|
+| b1nary Batch Settler | `GpR6id2cHu5fUGsFm7NUKkB4NzfuEDa6brPzkSrgAzvS` |
+| Solana Margin Pool | `FH3z4BYRZMFU8YzpJoFXUbrdoYksdERnWbZvDAEc3qcC` |
+| CCTP V2 Token Messenger Minter | `CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe` |
+| CCTP V2 Message Transmitter | `CCTPV2Sm4AdWt5296sk4P66VBZ7bEhcARwFaaS9YPbeC` |
+| USDC Mint | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+| wSOL Mint | `So11111111111111111111111111111111111111112` |
+| TSLAx Mint | `XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB` |
 
 ## Testnet (Base Sepolia)
 
@@ -33,11 +45,11 @@ description: "Contract addresses and key functions."
 | LETH (mock WETH) | `0x8A6Aa2304797898d46eC1d342Fedc817D3a973B6` |
 | LBTC (mock cbBTC) | `0x39fA11EbBE82699Fd9F79C566D7384064571d2b4` |
 
-All contracts are UUPS-proxied and verified on BaseScan.
+Base EVM contracts are UUPS-proxied and verified on BaseScan. Solana programs are deployed on Solana mainnet.
 
 ## Key functions
 
-### executeOrder
+### Base: executeOrder
 
 ```solidity
 function executeOrder(
@@ -65,7 +77,7 @@ struct Quote {
 
 All fields come directly from the `GET /prices` response. `amount` is in oToken units (8 decimals, `1e8` = 1 ETH notional).
 
-### Collateral calculation
+### Base collateral calculation
 
 **Puts:**
 ```
@@ -79,11 +91,45 @@ collateral = amount * 1e10
 ```
 Result in WETH (18 decimals).
 
-**BTC Calls:**
+**cbBTC Calls:**
 ```
 collateral = amount
 ```
 Result in cbBTC (8 decimals, same as oToken).
+
+### Solana: ExecuteOrder
+
+Solana quotes from `GET /prices` map to the Solana b1nary Batch Settler `ExecuteOrder` instruction.
+
+Important execution rules:
+
+- USDC and wSOL use the SPL Token Program.
+- TSLAx uses Token-2022: `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`.
+- SOL covered calls wrap SOL to wSOL before execution when wSOL collateral is insufficient.
+- The operator/hot wallet sponsors setup and transaction fees where supported.
+- The user's Solana embedded trading wallet signs only where token ownership authority is required.
+
+### Solana collateral calculation
+
+**Puts:**
+```
+collateral = (amount * strike_price_8dec) / 1e10
+```
+Result in USDC (6 decimals).
+
+**SOL calls:**
+Use wSOL/SOL in 9 decimals.
+
+**TSLAx calls:**
+Use TSLAx in 8 decimals.
+
+### CCTP V2 bridge
+
+Circle CCTP V2 is used to consolidate USDC across Base and Solana.
+
+- Base -> Solana: `mintRecipient` must be the user's Solana USDC token account (ATA), not the wallet owner. Backend validates or creates the ATA before reserving the bridge.
+- Solana -> Base: `mintRecipient` is the Base smart trading account encoded as bytes32.
+- Agents should wait for the actual minted amount before executing a destination-chain trade; CCTP fees/rounding can make the received amount lower than the burn amount.
 
 ### makerNonce
 
